@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/A1esandr/linkcheck"
@@ -15,5 +16,11 @@ func main() {
 	if len(url) == 0 {
 		url = *urlFlag
 	}
-	linkcheck.New().Check(url)
+	results, err := linkcheck.New().Check(url)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for from, state := range results {
+		fmt.Printf("%s : %s \n", from, state)
+	}
 }
