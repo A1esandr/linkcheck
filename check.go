@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/A1esandr/crawler"
@@ -20,6 +21,16 @@ type (
 		Start(url string)
 		Check(url string) (map[string]string, error)
 	}
+
+	syncSet struct {
+		items map[string]struct{}
+		mu    sync.Mutex
+	}
+
+	syncMap struct {
+		items map[string]string
+		mu    sync.Mutex
+	}
 )
 
 func New() Checker {
@@ -27,14 +38,14 @@ func New() Checker {
 }
 
 func (c *checker) Start(url string) {
-	loaded := make(map[string]struct{})
+	loaded := &syncSet{items: make(map[string]struct{})}
 	tocheck := make(map[string]struct{})
-	errors := make(map[string]string)
+	errs := &syncMap{items: make(map[string]string)}
 	tocheck[url] = struct{}{}
 
-	execute(tocheck, loaded, errors, url)
+	execute(tocheck, loaded, errs, url)
 
-	for from, state := range errors {
+	for from, state := range errs.items {
 		fmt.Printf("%s : %s \n", state, from)
 	}
 }
@@ -78,28 +89,41 @@ func (c *checker) check(url string, count int) error {
 	return nil
 }
 
-func execute(tocheck map[string]struct{}, loaded map[string]struct{}, errors map[string]string, url string) {
+func execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url string) {
+	var wg sync.WaitGroup
 	for {
-		collect := make(map[string]struct{})
+		collect := &syncSet{items: make(map[string]struct{})}
 		for key := range tocheck {
-			results, err := New().Check(key)
-			if err != nil {
-				fmt.Println(err)
-			}
-			loaded[key] = struct{}{}
-			newcheck := parseResults(results, loaded, errors, url)
-			for k := range newcheck {
-				collect[k] = struct{}{}
-			}
+			wg.Add(1)
+			go func(key string) {
+				results, err := New().Check(key)
+				if err != nil {
+					fmt.Println(err)
+				}
+				loaded.mu.Lock()
+				errs.mu.Lock()
+				loaded.items[key] = struct{}{}
+				newcheck := parseResults(results, loaded.items, errs.items, url)
+				loaded.mu.Unlock()
+				errs.mu.Unlock()
+
+				collect.mu.Lock()
+				for k := range newcheck {
+					collect.items[k] = struct{}{}
+				}
+				collect.mu.Unlock()
+				wg.Done()
+			}(key)
 		}
-		if len(collect) == 0 {
+		wg.Wait()
+		if len(collect.items) == 0 {
 			break
 		}
-		tocheck = collect
+		tocheck = collect.items
 	}
 }
 
-func parseResults(results map[string]string, loaded map[string]struct{}, errors map[string]string, url string) map[string]struct{} {
+func parseResults(results map[string]string, loaded map[string]struct{}, errs map[string]string, url string) map[string]struct{} {
 	tocheck := make(map[string]struct{})
 	for from, state := range results {
 		fmt.Printf("%s : %s \n", state, from)
@@ -107,7 +131,7 @@ func parseResults(results map[string]string, loaded map[string]struct{}, errors 
 			tocheck[from] = struct{}{}
 		}
 		if state != "OK" {
-			errors[from] = state
+			errs[from] = state
 		}
 	}
 	return tocheck
