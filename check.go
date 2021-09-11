@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/A1esandr/crawler"
@@ -16,12 +17,26 @@ type (
 	}
 
 	Checker interface {
+		Start(url string)
 		Check(url string) (map[string]string, error)
 	}
 )
 
 func New() Checker {
 	return &checker{}
+}
+
+func (c *checker) Start(url string) {
+	loaded := make(map[string]struct{})
+	tocheck := make(map[string]struct{})
+	errors := make(map[string]string)
+	tocheck[url] = struct{}{}
+
+	execute(tocheck, loaded, errors, url)
+
+	for from, state := range errors {
+		fmt.Printf("%s : %s \n", state, from)
+	}
 }
 
 func (c *checker) Check(url string) (map[string]string, error) {
@@ -61,4 +76,39 @@ func (c *checker) check(url string, count int) error {
 		return c.check(url, count+1)
 	}
 	return nil
+}
+
+func execute(tocheck map[string]struct{}, loaded map[string]struct{}, errors map[string]string, url string) {
+	for {
+		collect := make(map[string]struct{})
+		for key := range tocheck {
+			results, err := New().Check(key)
+			if err != nil {
+				fmt.Println(err)
+			}
+			loaded[key] = struct{}{}
+			newcheck := parseResults(results, loaded, errors, url)
+			for k := range newcheck {
+				collect[k] = struct{}{}
+			}
+		}
+		if len(collect) == 0 {
+			break
+		}
+		tocheck = collect
+	}
+}
+
+func parseResults(results map[string]string, loaded map[string]struct{}, errors map[string]string, url string) map[string]struct{} {
+	tocheck := make(map[string]struct{})
+	for from, state := range results {
+		fmt.Printf("%s : %s \n", state, from)
+		if _, ok := loaded[from]; !ok && strings.HasPrefix(from, url) && strings.HasSuffix(from, ".html") {
+			tocheck[from] = struct{}{}
+		}
+		if state != "OK" {
+			errors[from] = state
+		}
+	}
+	return tocheck
 }
