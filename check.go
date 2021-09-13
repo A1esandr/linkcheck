@@ -15,6 +15,7 @@ import (
 
 type (
 	checker struct {
+		checked *syncSet
 	}
 
 	Checker interface {
@@ -57,7 +58,16 @@ func (c *checker) Check(url string) (map[string]string, error) {
 	}
 	result := make(map[string]string)
 	for _, link := range links {
+		c.checked.mu.Lock()
+		_, ok := c.checked.items[link]
+		c.checked.mu.Unlock()
+		if ok {
+			continue
+		}
 		err = c.check(link, 0)
+		c.checked.mu.Lock()
+		c.checked.items[link] = struct{}{}
+		c.checked.mu.Unlock()
 		if err != nil {
 			result[link] = err.Error()
 			continue
