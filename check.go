@@ -35,7 +35,7 @@ type (
 )
 
 func New() Checker {
-	return &checker{}
+	return &checker{checked: &syncSet{items: make(map[string]struct{})}}
 }
 
 func (c *checker) Start(url string) {
@@ -48,6 +48,9 @@ func (c *checker) Start(url string) {
 
 	for from, state := range errs.items {
 		fmt.Printf("%s : %s \n", state, from)
+	}
+	if len(errs.items) == 0 {
+		fmt.Println("Finished without errors")
 	}
 }
 
@@ -101,12 +104,13 @@ func (c *checker) check(url string, count int) error {
 
 func execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url string) {
 	var wg sync.WaitGroup
+	app := New()
 	for {
 		collect := &syncSet{items: make(map[string]struct{})}
 		for key := range tocheck {
 			wg.Add(1)
 			go func(key string) {
-				results, err := New().Check(key)
+				results, err := app.Check(key)
 				if err != nil {
 					fmt.Println(err)
 				}
