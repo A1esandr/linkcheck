@@ -47,7 +47,7 @@ func (c *checker) Start(url string) {
 	execute(tocheck, loaded, errs, url)
 
 	for from, state := range errs.items {
-		fmt.Printf("%s : %s \n", state, from)
+		fmt.Printf("Not OK: %s : %s \n", state, from)
 	}
 	if len(errs.items) == 0 {
 		fmt.Println("Finished without errors")
