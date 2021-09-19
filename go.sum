@@ -1,5 +1,5 @@
-github.com/A1esandr/crawler v0.1.0 h1:ZUWJaivsfYyEYHV8IFK1VQtzYdaqhNVCXOQ3xfoiXmE=
-github.com/A1esandr/crawler v0.1.0/go.mod h1:O6Sm9NE019N+o47s9dh0JDIFxY1GM/Z1bmhF2SZ9BDw=
+github.com/A1esandr/crawler v0.1.2 h1:sRO3iTOtkb50apiGRjja8JIpaa/nw3z35qiNj1mXpGw=
+github.com/A1esandr/crawler v0.1.2/go.mod h1:O6Sm9NE019N+o47s9dh0JDIFxY1GM/Z1bmhF2SZ9BDw=
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5 h1:wjuX4b5yYQnEQHzd+CBcrcC6OVR2J1CN6mUy0oSxIPo=
 golang.org/x/net v0.0.0-20210525063256-abc453219eb5/go.mod h1:9nx3DQGgdP8bBQD5qxJ1jj9UTztislL4KSBs9R2vV5Y=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

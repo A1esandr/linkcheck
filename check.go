@@ -16,6 +16,7 @@ import (
 type (
 	checker struct {
 		checked *syncSet
+		url     string
 	}
 
 	Checker interface {
@@ -44,7 +45,7 @@ func (c *checker) Start(url string) {
 	errs := &syncMap{items: make(map[string]string)}
 	tocheck[url] = struct{}{}
 
-	execute(tocheck, loaded, errs, url)
+	c.execute(tocheck, loaded, errs, url)
 
 	for from, state := range errs.items {
 		fmt.Printf("Not OK: %s : %s \n", state, from)
@@ -102,7 +103,14 @@ func (c *checker) check(url string, count int) error {
 	return nil
 }
 
-func execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url string) {
+func (c *checker) valid(from, url string) bool {
+	if strings.HasPrefix(from, url) && strings.HasSuffix(from, ".html") {
+		return true
+	}
+	return false
+}
+
+func (c *checker) execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url string) {
 	var wg sync.WaitGroup
 	app := New()
 	for {
@@ -117,7 +125,7 @@ func execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url st
 				loaded.mu.Lock()
 				errs.mu.Lock()
 				loaded.items[key] = struct{}{}
-				newcheck := parseResults(results, loaded.items, errs.items, url)
+				newcheck := c.parseResults(results, loaded.items, errs.items, url)
 				loaded.mu.Unlock()
 				errs.mu.Unlock()
 
@@ -137,11 +145,11 @@ func execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url st
 	}
 }
 
-func parseResults(results map[string]string, loaded map[string]struct{}, errs map[string]string, url string) map[string]struct{} {
+func (c *checker) parseResults(results map[string]string, loaded map[string]struct{}, errs map[string]string, url string) map[string]struct{} {
 	tocheck := make(map[string]struct{})
 	for from, state := range results {
 		fmt.Printf("%s : %s \n", state, from)
-		if _, ok := loaded[from]; !ok && strings.HasPrefix(from, url) && strings.HasSuffix(from, ".html") {
+		if _, ok := loaded[from]; !ok && c.valid(from, url) {
 			tocheck[from] = struct{}{}
 		}
 		if state != "OK" {
