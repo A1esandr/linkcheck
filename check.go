@@ -17,6 +17,7 @@ type (
 	checker struct {
 		checked *syncSet
 		url     string
+		htmlOnly bool
 	}
 
 	Checker interface {
@@ -35,8 +36,8 @@ type (
 	}
 )
 
-func New() Checker {
-	return &checker{checked: &syncSet{items: make(map[string]struct{})}}
+func New(htmlOnly bool) Checker {
+	return &checker{checked: &syncSet{items: make(map[string]struct{})}, htmlOnly: htmlOnly}
 }
 
 func (c *checker) Start(url string) {
@@ -104,21 +105,26 @@ func (c *checker) check(url string, count int) error {
 }
 
 func (c *checker) valid(from, url string) bool {
-	if strings.HasPrefix(from, url) && strings.HasSuffix(from, ".html") {
-		return true
+	if strings.HasPrefix(from, url) {
+		if c.htmlOnly {
+			if strings.HasSuffix(from, ".html") {
+				return true
+			}
+		} else {
+			return true
+		}
 	}
 	return false
 }
 
 func (c *checker) execute(tocheck map[string]struct{}, loaded *syncSet, errs *syncMap, url string) {
 	var wg sync.WaitGroup
-	app := New()
 	for {
 		collect := &syncSet{items: make(map[string]struct{})}
 		for key := range tocheck {
 			wg.Add(1)
 			go func(key string) {
-				results, err := app.Check(key)
+				results, err := c.Check(key)
 				if err != nil {
 					fmt.Println(err)
 				}
