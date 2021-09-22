@@ -19,4 +19,17 @@ where:
 url - string, site url for check
 htmlOnlyParam - bool, load only .html pages or all
 ```
+Also can be used for check separate page
+```
+results, err := linkcheck.New(htmlOnlyParam).Check(pageURL)
+if err != nil {
+  fmt.Println(err)
+}
+for from, state := range results {
+  fmt.Printf("%s : %s \n", state, from)
+}
 
+where:
+pageURL - string, page url for check
+htmlOnlyParam - bool, load only .html pages or all
+```
